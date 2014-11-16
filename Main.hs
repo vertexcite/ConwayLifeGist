@@ -5,6 +5,8 @@ import Test.QuickCheck
 import Test.QuickCheck.All
 import Data.Set (Set)
 import qualified Data.Set as S
+import Control.Monad
+import Data.Maybe
 
 import Life
 
@@ -33,7 +35,29 @@ massageList width height = map (\(x,y) -> (x `mod` width, y `mod` height))
 blockOfCells :: Int -> Int -> Set Cell
 blockOfCells width height = S.fromList [(x,y) | x <- [0..width-1], y <- [0..height-1]]
 
+-- Using QuickCheck's arbitrary
+-- Note that prop_rules2 only tests over a fixed grid, whereas prop_rules allows QuickCheck to define the grid bounds.
+-- This highlights QuickCheck's power, where it homes in on the simplest case.
+-- To demonstrate this, force the implementation to have a "dead pixel" outside the usual bounds, e.g. by 
+-- changing next as follows
+-- next w = deadpixel `S.insert` births w `S.union` survivors w where deadpixel = (70,37)
+newtype WorldArb = WorldArb { unworld :: World} deriving Show
 
+width', height' :: Int
+width' = 10
+height' = 10
+
+instance Arbitrary WorldArb where
+  arbitrary = do
+    let grid = S.toList (blockOfCells width' height')
+    cells <- forM grid $ \c -> do
+      alive <- choose (False, True)
+      return $ if alive then Just c else Nothing
+    return . WorldArb . S.fromList . catMaybes  $ cells
+    
+prop_rules2 :: WorldArb -> Bool
+prop_rules2 wa = prop_rules width' height' w
+  where w = S.toList . unworld $ wa
 
 
 
