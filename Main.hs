@@ -16,7 +16,7 @@ prop_rules width height l = and $ S.toList $ S.map rules allCells
   where 
     w = S.fromList (massageList width height l)
     w' = next w
-    allCells = candidates $ blockOfCells width height
+    allCells = candidates $ blockOfCells width height `S.union` w `S.union` w'
     rules c = or [rule_overCrowding, rule_lonely, rule_survive, rule_born, rule_empty]
       where
         rule_overCrowding = alive && not alive' && n > 3
@@ -30,7 +30,7 @@ prop_rules width height l = and $ S.toList $ S.map rules allCells
 
 -- Forces random elements into the grid of dimensions width x height  
 massageList :: Int -> Int -> [(Int, Int)] -> [(Int, Int)]
-massageList width height = map (\(x,y) -> (x `mod` width, y `mod` height))
+massageList width height = map (\(x,y) -> (if width == 0 then x else x `mod` width, if height == 0 then y else y `mod` height))
 
 blockOfCells :: Int -> Int -> Set Cell
 blockOfCells width height = S.fromList [(x,y) | x <- [0..width-1], y <- [0..height-1]]
@@ -49,12 +49,11 @@ height' = 10
 
 instance Arbitrary WorldArb where
   arbitrary = do
-    let grid = S.toList (blockOfCells width' height')
-    cells <- forM grid $ \c -> do
+    cells <- forM (S.toList (blockOfCells width' height')) $ \c -> do
       alive <- choose (False, True)
       return $ if alive then Just c else Nothing
     return . WorldArb . S.fromList . catMaybes  $ cells
-    
+
 prop_rules2 :: WorldArb -> Bool
 prop_rules2 wa = prop_rules width' height' w
   where w = S.toList . unworld $ wa
