@@ -49,10 +49,10 @@ height' = 10
 
 instance Arbitrary WorldArb where
   arbitrary = do
-    cells <- forM (S.toList (blockOfCells width' height')) $ \c -> do
+    maybes <- forM (S.toList (blockOfCells width' height')) $ \c -> do
       alive <- choose (False, True)
       return $ if alive then Just c else Nothing
-    return . WorldArb . S.fromList . catMaybes  $ cells
+    return . WorldArb . S.fromList . catMaybes  $ maybes
 
 prop_rules2 :: WorldArb -> Bool
 prop_rules2 wa = prop_rules width' height' w
