@@ -20,7 +20,15 @@ survivors :: Set Cell -> Set Cell
 survivors w = S.filter (\c -> neighbourCount c w `elem` [2,3]) w
 
 next :: Set Cell -> Set Cell
-next w = births w `S.union` survivors w
+
+--next = nextCorrect -- Comment out the code on either this line or the line below
+next = nextBroken -- Uncomment code on this line to intentionally break things to see testing in action (though that depends on QuickCheck being lucky enough to randomly choose a case that fails)
+
+nextCorrect :: Set Cell -> Set Cell
+nextCorrect w = births w `S.union` survivors w
+
+nextBroken :: Set Cell -> Set (Int, Int)
+nextBroken w = deadpixel `S.insert` births w `S.union` survivors w where deadpixel = (15,12)
 
 explode :: Cell -> Set Cell
 explode (x,y) = S.fromList [(x+dx,y+dy) | dx <- range, dy <- range, (dx,dy) /= (0,0)]
