@@ -11,12 +11,12 @@ import Data.Maybe
 import Life
 
 
-prop_rules :: Int -> Int -> [(Int, Int)] -> Bool
-prop_rules width height l = and $ S.toList $ S.map rules allCells
+prop_rules :: WorldArb -> Bool
+prop_rules wa = and $ S.toList $ S.map rules allCells
   where 
-    w = S.fromList (massageList width height l)
+    w = world wa
     w' = next w
-    allCells = candidates $ blockOfCells width height `S.union` w `S.union` w'
+    allCells = candidates $ blockOfCells (width wa) (height wa) `S.union` w `S.union` w'
     rules c = or [rule_overCrowding, rule_lonely, rule_survive, rule_born, rule_empty]
       where
         rule_overCrowding = alive && not alive' && n > 3
@@ -28,12 +28,19 @@ prop_rules width height l = and $ S.toList $ S.map rules allCells
         alive  = c `S.member` w
         alive' = c `S.member` w'
 
+prop_rules2 :: Int -> Int -> [(Int, Int)] -> Bool
+prop_rules2 width' height' w = prop_rules wa
+  where
+    mw = massageList width' height' w
+    wa = WorldArb {world = S.fromList mw, width = width', height = height'}
+
 -- Forces random elements into the grid of dimensions width x height  
 massageList :: Int -> Int -> [(Int, Int)] -> [(Int, Int)]
-massageList width height = map (\(x,y) -> (if width == 0 then x else x `mod` width, if height == 0 then y else y `mod` height))
+massageList w h = map (\(x,y) -> (if w == 0 then x else x `mod` w, if h == 0 then y else y `mod` h))
+
 
 blockOfCells :: Int -> Int -> Set Cell
-blockOfCells width height = S.fromList [(x,y) | x <- [0..width-1], y <- [0..height-1]]
+blockOfCells w h = S.fromList [(x,y) | x <- [0..w-1], y <- [0..h-1]]
 
 -- Using QuickCheck's arbitrary
 -- Note that prop_rules2 only tests over a fixed grid, whereas prop_rules allows QuickCheck to define the grid bounds.
@@ -41,22 +48,17 @@ blockOfCells width height = S.fromList [(x,y) | x <- [0..width-1], y <- [0..heig
 -- To demonstrate this, force the implementation to have a "dead pixel" outside the usual bounds, e.g. by 
 -- changing next as follows
 -- next w = deadpixel `S.insert` births w `S.union` survivors w where deadpixel = (70,37)
-newtype WorldArb = WorldArb { unworld :: World} deriving Show
-
-width', height' :: Int
-width' = 10
-height' = 10
+data WorldArb = WorldArb { world :: World, width :: Int, height :: Int } deriving Show
 
 instance Arbitrary WorldArb where
   arbitrary = do
+    width' <- arbitrary
+    height' <- arbitrary
     maybes <- forM (S.toList (blockOfCells width' height')) $ \c -> do
       alive <- choose (False, True)
       return $ if alive then Just c else Nothing
-    return . WorldArb . S.fromList . catMaybes  $ maybes
+    return WorldArb {world = S.fromList . catMaybes $ maybes, width = width', height = height'}
 
-prop_rules2 :: WorldArb -> Bool
-prop_rules2 wa = prop_rules width' height' w
-  where w = S.toList . unworld $ wa
 
 
 
