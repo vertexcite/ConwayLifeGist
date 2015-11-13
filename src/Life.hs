@@ -7,27 +7,27 @@ type Cell = (Int, Int)
 
 type World = Set Cell
 
-candidates :: Set Cell -> Set Cell
+candidates :: World -> Set Cell
 candidates w =  S.fold S.union S.empty (S.map explode w)
 
-neighbourCount :: Cell -> Set Cell -> Int
+neighbourCount :: Cell -> World -> Int
 neighbourCount c w = S.size $ S.filter (\x -> x `S.member` explode c) w
 
-births :: Set Cell -> Set Cell
+births :: World -> Set Cell
 births w = S.filter (\c -> neighbourCount c w == 3) (candidates w)
 
-survivors :: Set Cell -> Set Cell
+survivors :: World -> Set Cell
 survivors w = S.filter (\c -> neighbourCount c w `elem` [2,3]) w
 
-next :: Set Cell -> Set Cell
+next :: World -> World
 
 next = nextCorrect -- Comment out the code on either this line or the line below
 -- next = nextBroken -- Uncomment code on this line to intentionally break things to see testing in action (though that depends on QuickCheck being lucky enough to randomly choose a case that fails)
 
-nextCorrect :: Set Cell -> Set Cell
+nextCorrect :: World -> World
 nextCorrect w = births w `S.union` survivors w
 
-nextBroken :: Set Cell -> Set (Int, Int)
+nextBroken :: World -> World
 nextBroken w = deadpixel `S.insert` births w `S.union` survivors w where deadpixel = (15,12)
 
 explode :: Cell -> Set Cell
